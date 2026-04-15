@@ -168,6 +168,27 @@ bun run gmap gas "34.0944995,-118.1565464" 3000
 bun run gmap gas "34.0944995,-118.1565464" 5000 -f DIESEL -n 15
 ```
 
+### `parking "<lat,lng>" <radius_m> [-n max] [--free-only] [--infer] [--sort confidence|distance]`
+附近停车候选，按 `confidence` 排序（平手按距离）。每条有 `confidence` 标签：
+
+| 标签 | 含义 |
+|------|------|
+| `confirmed_free` | Google 元数据里 `freeParkingLot: true` 或 `freeGarageParking: true` |
+| `likely_free` | 类型强提示（超市/仓储/home improvement/加油站…）且无付费冲突，或元数据含 `freeStreetParking` |
+| `unknown` | 无元数据且类型不典型 |
+| `paid` | 明确付费，默认只在正规停车场结果里保留，推断类结果过滤掉 |
+
+**`--infer` 关键开关**：并行再搜一把"通常带免费大停车场"的类型——`supermarket` / `grocery_store` / `department_store` / `shopping_mall` / `home_improvement_store` / `home_goods_store` / `hardware_store` / `furniture_store` / `wholesaler` / `gas_station` / `pharmacy` / `drugstore` / `sporting_goods_store` / `pet_store` / `discount_store`，合并去重。市区外 / 社区商业区特别有效。
+
+```bash
+bun run gmap parking "34.0522,-118.2437" 800                    # 只搜正规停车场
+bun run gmap parking "34.0944,-118.1565" 2000 --infer           # 加推断候选
+bun run gmap parking @work 500 --free-only --infer              # 只要免费 / 推测免费
+bun run gmap parking "34.0944,-118.1565" 1500 --infer --sort distance
+```
+
+⚠️ **Google Places 不提供停车费率**（$/小时），也**不索引街边车位**——`freeStreetParking` 只是目的地元数据，不是可搜索实体。精确费率/实时空位得用 SpotHero / ParkMobile / 市政 feed。**推断的 `likely_free` 需现场确认**，部分大型零售严格限制只给消费者停车（Costco、Trader Joe's 高峰期常见）。
+
 ### `ev "<lat,lng>" <radius_m> [-c connector] [-k min_kw] [-n max]`
 附近充电桩，显示接口类型（Tesla/CCS1/CCS2/CHAdeMO/J1772/Type2/NACS…）、最大功率、可用数、故障数。按功率降序。
 

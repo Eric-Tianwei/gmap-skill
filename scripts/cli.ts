@@ -11,13 +11,14 @@ import { register as matrix } from "./commands/matrix.ts";
 import { register as forecast } from "./commands/forecast.ts";
 import { register as gas } from "./commands/gas.ts";
 import { register as ev } from "./commands/ev.ts";
+import { register as parking } from "./commands/parking.ts";
 import { register as types } from "./commands/types.ts";
 import { register as config } from "./commands/config.ts";
 
 const program = new Command();
 program.name("gmap").description("Google Maps CLI (Routes + Places New)").version("0.2.0");
 
-for (const r of [geocode, reverse, details, search, nearby, directions, matrix, forecast, gas, ev, types, config]) {
+for (const r of [geocode, reverse, details, search, nearby, directions, matrix, forecast, gas, ev, parking, types, config]) {
   r(program);
 }
 
