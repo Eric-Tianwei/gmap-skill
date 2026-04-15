@@ -99,7 +99,44 @@ bun run gmap search "coffee" -l 37.4224,-122.0842 -r 1000 -n 5
 
 ```bash
 bun run gmap nearby "37.4224,-122.0842" 500 -t cafe,restaurant -r DISTANCE
+bun run gmap nearby "34.0944,-118.1565" 2000 -t supermarket,convenience_store
+bun run gmap nearby "34.0944,-118.1565" 3000 -t bar,night_club
+bun run gmap nearby "34.0944,-118.1565" 2000 -t public_bathroom
+bun run gmap nearby "34.0944,-118.1565" 5000 -t museum,tourist_attraction
+bun run gmap nearby "34.0944,-118.1565" 3000 -t hair_salon,barber_shop
 ```
+
+不确定类型名时先查 `types` 速查表（见下）。
+
+### `types [group]`
+输出 Places API `includedTypes` 速查表，按日常场景分组。不传参数列全部组；传组名（`food` / `shopping` / `services` / `leisure` / `travel` / `education_work`）列该组细类。
+
+```bash
+bun run gmap types              # 全部分组
+bun run gmap types food         # 只看餐饮类
+bun run gmap types services     # 理发/加油/药店/洗手间 等
+```
+
+**常用映射速记**：
+| 想找 | `-t` 值 |
+|------|---------|
+| 加油站 | `gas_station` |
+| 超市 | `supermarket` / `grocery_store` |
+| 甜品店 | `dessert_shop` / `ice_cream_shop` / `bakery` |
+| 酒吧 | `bar` / `pub` / `wine_bar` / `night_club` |
+| 咖啡 | `cafe` / `coffee_shop` |
+| 公厕 | `public_bathroom` |
+| 公园 | `park` / `national_park` |
+| 博物馆 | `museum` / `art_gallery` |
+| 电影院 | `movie_theater` |
+| 理发 | `hair_salon` / `barber_shop` |
+| 景点 | `tourist_attraction` |
+| 酒店 | `hotel` / `motel` / `hostel` |
+| 地铁 | `subway_station` / `transit_station` |
+| 健身房 | `gym` / `fitness_center` |
+| 医院/药店 | `hospital` / `pharmacy` / `drugstore` |
+
+自然语言（"附近好吃的甜品店"）直接用 `search` 更灵活；类型名精确过滤用 `nearby`。
 
 ### `details <placeId>`
 地点详情，按类型返回不同字段（Places API New）。输出自动裁掉空字段。
@@ -168,11 +205,15 @@ bun run gmap matrix \
 1. **先看是否已有别名**：用户说"从家去..."优先用 `@home`，而不是再问地址。必要时用 `config place list` 查。
 2. **自然语言查地点用 `search`** —— 比先 `geocode` 再 `nearby` 省一步，且能跨区域匹配。精确限定区域时用 `nearby`。
 3. **距离/耗时必须经 `directions` 或 `matrix`**，不要用直线距离（Haversine）估算通勤时间；但用 Haversine 在 `search`/`nearby` 结果里做二次"按距离排序"是合理的。
-4. **批量耗时查询用 `matrix`**，不要循环 `directions`——一次请求、一次计费、省延迟。
-5. **涉及营业时间、电话、网站时调 `details`**，`search`/`nearby` 只给基本信息；`details` 可多个 place_id 并行调。
-6. **返回结果前把 `formatted_address` 回显**给用户确认，尤其重名地点（"Main St"、"王府井"）。
-7. **需要实时路况时加 `--traffic`**（仅 driving）；要准时到达的场景总是加上。
-8. **失败处理**：检查 exit code；常见错误是 API 未在 Cloud Console 启用、key 限制太严、配额超限。把原始错误给用户看，不要静默。
+4. **`search` vs `nearby` 怎么选**：
+   - 用户说的是**自然语言**（"附近好吃的甜品店"、"24 小时药店"、"便宜泰餐"）→ `search`，能混合类型+语义+修饰词，灵活。
+   - 用户想要的是**明确单一或多个类型**（"所有加油站"、"附近所有酒吧"、"最近的公厕"）→ `nearby -t`，可多选（`-t bar,pub,wine_bar`），结果干净且能按 `DISTANCE` 排。
+   - 不确定类型名时先 `bun run gmap types [group]` 查速查表，不要猜。
+5. **批量耗时查询用 `matrix`**，不要循环 `directions`——一次请求、一次计费、省延迟。
+6. **涉及营业时间、电话、网站、价位、油价、充电桩功率时调 `details`**，`search`/`nearby` 只给基本信息；`details` 可多个 place_id 并行调。
+7. **返回结果前把 `formatted_address` 回显**给用户确认，尤其重名地点（"Main St"、"王府井"）。
+8. **需要实时路况时加 `--traffic`**（仅 driving）；要准时到达的场景总是加上。
+9. **失败处理**：检查 exit code；常见错误是 API 未在 Cloud Console 启用、key 限制太严、配额超限。把原始错误给用户看，不要静默。
 
 ## 项目结构
 
