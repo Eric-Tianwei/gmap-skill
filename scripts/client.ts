@@ -135,6 +135,25 @@ export function moneyToNumber(m: { units?: string | number; nanos?: number } | u
   return units + nanos / 1e9;
 }
 
+// Accept ISO 8601 or relative "+30m" / "+2h" / "+1d" / "+90s"; returns RFC 3339 UTC.
+export function parseFutureTime(input: string): string {
+  const rel = input.match(/^\+(\d+(?:\.\d+)?)\s*(s|m|min|h|hr|d)$/i);
+  if (rel) {
+    const n = parseFloat(rel[1]);
+    const unit = rel[2].toLowerCase();
+    const ms =
+      unit === "s" ? n * 1000 :
+      unit === "h" || unit === "hr" ? n * 3600_000 :
+      unit === "d" ? n * 86400_000 :
+      n * 60_000; // m / min
+    return new Date(Date.now() + ms).toISOString();
+  }
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) fail(`invalid time: ${input} (use ISO 8601 or "+30m"/"+2h"/"+1d")`);
+  if (d.getTime() <= Date.now()) fail(`departure time must be in the future: ${d.toISOString()}`);
+  return d.toISOString();
+}
+
 export function formatMoney(m: { units?: string | number; nanos?: number; currencyCode?: string } | undefined): string {
   if (!m) return "";
   const v = moneyToNumber(m);

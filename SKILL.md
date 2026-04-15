@@ -176,26 +176,44 @@ bun run gmap ev "34.0944995,-118.1565464" 5000
 bun run gmap ev "34.0944995,-118.1565464" 10000 -c EV_CONNECTOR_TYPE_CCS_COMBO_1 -k 150
 ```
 
-### `directions <origin> <destination> [-m mode] [--traffic]`
-两点路线（**Routes API** — `directions/v2:computeRoutes`）。`mode` ∈ `driving | walking | bicycling | transit | two_wheeler`。起止接受地址、`lat,lng`、`place_id:...`、或别名。`--traffic` 仅 driving 有效。
+### `directions <origin> <destination> [-m mode] [--traffic] [--depart <time>]`
+两点路线（**Routes API** — `directions/v2:computeRoutes`）。`mode` ∈ `driving | walking | bicycling | transit | two_wheeler`。起止接受地址、`lat,lng`、`place_id:...`、或别名。
+
+- `--traffic`：按当前路况算（仅 driving）
+- `--depart <time>`：按**未来出发时间**预测车程（基于历史路况，Google 自动走 `TRAFFIC_AWARE`）。格式：ISO 8601（`"2026-04-15T08:00-07:00"`）或相对（`"+30m"` / `"+2h"` / `"+1d"` / `"+90s"`）。仅 driving / two_wheeler。
+
+返回多给一个 `duration_no_traffic`（`staticDuration`）作对照，可判断堵车影响。
 
 ```bash
-bun run gmap directions "SFO" "Palo Alto" -m driving --traffic
-bun run gmap directions @home @work
-bun run gmap directions @home "place_id:ChIJ-8IP043EwoARxu4-KUQ-XYM"
+bun run gmap directions @home @work --traffic                     # 现在出发
+bun run gmap directions @home @work --depart "+30m"               # 半小时后出发
+bun run gmap directions @home "LAX" --depart "2026-04-15T06:30-07:00"  # 周一早班飞机
+bun run gmap directions "SFO" "Palo Alto" -m transit              # 公交（不用 depart）
 ```
 
-### `matrix -o <origins> -d <destinations> [-m mode] [--traffic]`
-N×M 行程矩阵（Routes API — `distanceMatrix/v2:computeRouteMatrix`）。`-o` / `-d` 用分号分隔多个点。
+### `forecast <origin> <destination> [--step 15m] [--horizon 3h] [-m mode]`
+预测从现在开始未来 N 小时内车程随时间的变化曲线。内部按 `--step` 步长并行打 `computeRoutes`，拼出时间→车程表。最多 48 个采样点（防 API 爆单）。
+
+输出包含：最快/最慢出发时间、完整采样点，每个点带 `extra_vs_free`（比无路况慢多少分钟，负数表示预测更快）。
+
+```bash
+bun run gmap forecast @home @work --step 15m --horizon 2h       # 下班前 2h，每 15 分钟一个点
+bun run gmap forecast @home "LAX" --step 30m --horizon 6h       # 看看今天什么时候去机场最快
+```
+
+用途：决定什么时候出门避开高峰。
+
+### `matrix -o <origins> -d <destinations> [-m mode] [--traffic] [--depart <time>]`
+N×M 行程矩阵（Routes API — `distanceMatrix/v2:computeRouteMatrix`）。`-o` / `-d` 用分号分隔多个点。支持 `--depart`（同 `directions`）。
 
 ```bash
 bun run gmap matrix \
   -o "@home;@work" \
   -d "SFO;OAK;SJC" \
-  -m driving --traffic
+  -m driving --depart "+1d"     # 明天同一时间出发的车程矩阵
 ```
 
-取代 legacy Distance Matrix，一次请求拿全部组合。批量场景（最近 N 家车程、多人聚会选址）用这个而不是循环 `directions`。
+取代 legacy Distance Matrix，一次请求拿全部组合。批量场景（最近 N 家车程、多人聚会选址、对比明早不同时段）用这个而不是循环 `directions`。
 
 ### `config <init|set|show|place …>`
 见上文「首次配置」。
@@ -212,7 +230,7 @@ bun run gmap matrix \
 5. **批量耗时查询用 `matrix`**，不要循环 `directions`——一次请求、一次计费、省延迟。
 6. **涉及营业时间、电话、网站、价位、油价、充电桩功率时调 `details`**，`search`/`nearby` 只给基本信息；`details` 可多个 place_id 并行调。
 7. **返回结果前把 `formatted_address` 回显**给用户确认，尤其重名地点（"Main St"、"王府井"）。
-8. **需要实时路况时加 `--traffic`**（仅 driving）；要准时到达的场景总是加上。
+8. **需要实时路况时加 `--traffic`**（仅 driving）；要准时到达的场景总是加上。**未来出发**（预订航班、明早通勤、周末出游）用 `--depart "+2h"` 或 ISO 时间戳，Google 会基于历史交通预测，比 `--traffic` 更准。`--depart` 自动启用 TRAFFIC_AWARE，不需要同时加 `--traffic`。
 9. **失败处理**：检查 exit code；常见错误是 API 未在 Cloud Console 启用、key 限制太严、配额超限。把原始错误给用户看，不要静默。
 
 ## 项目结构

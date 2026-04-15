@@ -6,6 +6,7 @@ import {
   waypoint,
   TRAVEL_MODE,
   parseDuration,
+  parseFutureTime,
   formatMeters,
 } from "../client.ts";
 import { resolveAddress } from "../config.ts";
@@ -19,8 +20,19 @@ export function register(program: Command): void {
     .requiredOption("-d, --destinations <list>", "semicolon-separated destinations")
     .option("-m, --mode <mode>", "driving|walking|bicycling|transit|two_wheeler", "driving")
     .option("--traffic", "trafficAware routing (driving only)")
+    .option(
+      "--depart <time>",
+      'future departure time: ISO 8601 or relative ("+30m"/"+2h"/"+1d")',
+    )
     .description("N×M travel-time / distance matrix (Routes API computeRouteMatrix)")
-    .action(async (opts: { origins: string; destinations: string; mode: string; traffic?: boolean }) => {
+    .action(
+      async (opts: {
+        origins: string;
+        destinations: string;
+        mode: string;
+        traffic?: boolean;
+        depart?: string;
+      }) => {
       const travelMode = TRAVEL_MODE[opts.mode.toLowerCase()];
       if (!travelMode) fail(`unknown mode: ${opts.mode}`);
       const origins = opts.origins.split(";").map((s) => s.trim()).filter(Boolean);
@@ -30,14 +42,21 @@ export function register(program: Command): void {
         destinations: dests.map((s) => ({ waypoint: waypoint(resolveAddress(s)) })),
         travelMode,
       };
-      if (travelMode === "DRIVE") {
+      if (opts.depart) {
+        if (travelMode !== "DRIVE" && travelMode !== "TWO_WHEELER") {
+          fail("--depart only supported for driving / two_wheeler");
+        }
+        body.departureTime = parseFutureTime(opts.depart);
+        body.routingPreference = "TRAFFIC_AWARE";
+      } else if (travelMode === "DRIVE") {
         body.routingPreference = opts.traffic ? "TRAFFIC_AWARE" : "TRAFFIC_UNAWARE";
       }
       const data = await routesPost("distanceMatrix/v2:computeRouteMatrix", body, FIELDS);
       // Response is an array of elements (may arrive as NDJSON — fetch parses as JSON array when Content-Type is JSON).
       const rows: any[] = Array.isArray(data) ? data : [];
-      emit(
-        rows.map((e) => ({
+      emit({
+        departure_time: body.departureTime,
+        rows: rows.map((e) => ({
           origin: origins[e.originIndex],
           destination: dests[e.destinationIndex],
           duration: parseDuration(e.duration),
@@ -45,6 +64,6 @@ export function register(program: Command): void {
           condition: e.condition,
           status: e.status,
         })),
-      );
+      });
     });
 }

@@ -6,24 +6,29 @@ import {
   waypoint,
   TRAVEL_MODE,
   parseDuration,
+  parseFutureTime,
   formatMeters,
 } from "../client.ts";
 import { resolveAddress } from "../config.ts";
 
 const FIELDS =
-  "routes.duration,routes.distanceMeters,routes.description,routes.legs.startLocation,routes.legs.endLocation,routes.legs.steps.navigationInstruction,routes.legs.steps.distanceMeters";
+  "routes.duration,routes.staticDuration,routes.distanceMeters,routes.description,routes.legs.startLocation,routes.legs.endLocation,routes.legs.steps.navigationInstruction,routes.legs.steps.distanceMeters";
 
 export function register(program: Command): void {
   program
     .command("directions <origin> <destination>")
     .option("-m, --mode <mode>", "driving|walking|bicycling|transit|two_wheeler", "driving")
     .option("--traffic", "request trafficAware routing (driving only)")
+    .option(
+      "--depart <time>",
+      'future departure time: ISO 8601 ("2026-04-15T08:00-07:00") or relative ("+30m"/"+2h"/"+1d")',
+    )
     .description("Route between two places (Routes API)")
     .action(
       async (
         origin: string,
         destination: string,
-        opts: { mode: string; traffic?: boolean },
+        opts: { mode: string; traffic?: boolean; depart?: string },
       ) => {
         const travelMode = TRAVEL_MODE[opts.mode.toLowerCase()];
         if (!travelMode) fail(`unknown mode: ${opts.mode}`);
@@ -32,7 +37,13 @@ export function register(program: Command): void {
           destination: waypoint(resolveAddress(destination)),
           travelMode,
         };
-        if (travelMode === "DRIVE") {
+        if (opts.depart) {
+          if (travelMode !== "DRIVE" && travelMode !== "TWO_WHEELER") {
+            fail("--depart only supported for driving / two_wheeler");
+          }
+          body.departureTime = parseFutureTime(opts.depart);
+          body.routingPreference = "TRAFFIC_AWARE";
+        } else if (travelMode === "DRIVE") {
           body.routingPreference = opts.traffic ? "TRAFFIC_AWARE" : "TRAFFIC_UNAWARE";
         }
         const data = await routesPost("directions/v2:computeRoutes", body, FIELDS);
@@ -43,6 +54,8 @@ export function register(program: Command): void {
           description: route.description,
           distance: formatMeters(route.distanceMeters),
           duration: parseDuration(route.duration),
+          duration_no_traffic: route.staticDuration ? parseDuration(route.staticDuration) : undefined,
+          departure_time: body.departureTime,
           steps: (leg?.steps ?? []).map((s: any) => ({
             instruction: s.navigationInstruction?.instructions,
             distance: formatMeters(s.distanceMeters),
