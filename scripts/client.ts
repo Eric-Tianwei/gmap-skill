@@ -7,7 +7,7 @@ const GEOCODE = "https://maps.googleapis.com/maps/api/geocode/json";
 export function apiKey(): string {
   const key = resolveApiKey();
   if (!key) {
-    fail("No API key. Run `bun run gmap config init` or set GOOGLE_MAPS_API_KEY.");
+    fail("No API key. Run `bun run gmap config init` to store one.");
   }
   return key as string;
 }

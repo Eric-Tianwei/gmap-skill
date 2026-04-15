@@ -50,8 +50,6 @@ bun run gmap config init
 
 交互式写入 `~/.config/gmap-skill/config.json`（权限 0600），包含 API key、home、work。
 
-API key 优先级：环境变量 `GOOGLE_MAPS_API_KEY` > 配置文件。
-
 配置出来后，`geocode` / `directions` 可以直接用别名：`@home`、`@work`、`@<place名>`。
 
 ```bash

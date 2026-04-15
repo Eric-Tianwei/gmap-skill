@@ -30,7 +30,7 @@ export function save(cfg: Config): void {
 }
 
 export function resolveApiKey(cfg: Config = load()): string | undefined {
-  return process.env.GOOGLE_MAPS_API_KEY || cfg.apiKey;
+  return cfg.apiKey;
 }
 
 export function resolveAddress(input: string, cfg: Config = load()): string {
