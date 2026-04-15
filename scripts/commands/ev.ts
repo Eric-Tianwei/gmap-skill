@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { emit, placesPost } from "../client.ts";
 
 const FIELDS =
-  "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.evChargeOptions";
+  "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.googleMapsUri,places.websiteUri,places.evChargeOptions";
 
 const CONNECTORS = [
   "EV_CONNECTOR_TYPE_TESLA",
@@ -61,7 +61,9 @@ export function register(program: Command): void {
               total_connectors: p.evChargeOptions?.connectorCount,
               connectors: aggs,
               match,
+              website: p.websiteUri,
               place_id: p.id,
+              google_maps_url: p.googleMapsUri,
               location: p.location,
             };
           })

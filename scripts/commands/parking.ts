@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { emit, placesPost } from "../client.ts";
 
 const FIELDS =
-  "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.businessStatus,places.types,places.primaryType,places.parkingOptions,places.currentOpeningHours.openNow";
+  "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.googleMapsUri,places.websiteUri,places.businessStatus,places.types,places.primaryType,places.parkingOptions,places.currentOpeningHours.openNow";
 
 // Types that commonly have free customer parking lots (suburban big-box pattern).
 const LIKELY_FREE_TYPES = [
@@ -142,7 +142,9 @@ export function register(program: Command): void {
             business_status: p.businessStatus,
             rating: p.rating,
             user_ratings_total: p.userRatingCount,
+            website: p.websiteUri,
             place_id: p.id,
+            google_maps_url: p.googleMapsUri,
             location: p.location,
             _score: CONFIDENCE_SCORE[confidence],
           };

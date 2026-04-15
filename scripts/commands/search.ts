@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { emit, placesPost } from "../client.ts";
 
 const FIELDS =
-  "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.currentOpeningHours.openNow";
+  "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.googleMapsUri,places.websiteUri,places.nationalPhoneNumber,places.currentOpeningHours.openNow";
 
 export function register(program: Command): void {
   program
@@ -30,7 +30,10 @@ export function register(program: Command): void {
           rating: p.rating,
           user_ratings_total: p.userRatingCount,
           open_now: p.currentOpeningHours?.openNow,
+          phone: p.nationalPhoneNumber,
+          website: p.websiteUri,
           place_id: p.id,
+          google_maps_url: p.googleMapsUri,
           location: p.location,
         })),
       );

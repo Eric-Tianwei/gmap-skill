@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { emit, placesPost, formatMoney, moneyToNumber } from "../client.ts";
 
 const FIELDS =
-  "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.fuelOptions";
+  "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.googleMapsUri,places.websiteUri,places.fuelOptions";
 
 const FUEL_TYPES = [
   "REGULAR_UNLEADED",
@@ -64,7 +64,9 @@ export function register(program: Command): void {
           [`${wanted}`]: match?.price ?? null,
           sort_value: match?.value ?? Number.POSITIVE_INFINITY,
           all_prices: prices,
+          website: p.websiteUri,
           place_id: p.id,
+          google_maps_url: p.googleMapsUri,
           location: p.location,
         };
       });
